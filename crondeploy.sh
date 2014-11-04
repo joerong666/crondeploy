@@ -5,12 +5,14 @@
 #############################################################################
 #VERSION="1.5.3"
 #webtarball=fooyun-web-1.5.3.tar.gz
+#webapitarball=fooyun-web-1.5.3.tar.gz
 #mgrtarball_32=fooyun-mngrserver-1.5.2_i386.tar.gz
 #mgrtarball_64=fooyun-mngrserver-1.5.2_x86_64.tar.gz
 #functarball_32=func_all_in-uc-bin_x32.tar.bz
 #functarball_64=func_all_in-uc-bin_x64.tar.bz
 #
 #weburl="http://doc.ucweb.local/download/attachments/34179839/fooyun-web-1.5.3.tar.gz?version=2&modificationDate=1414129665000&api=v2"
+#webapiurl="http://doc.ucweb.local/download/attachments/34179839/fooyun-web-1.5.3.tar.gz?version=2&modificationDate=1414129665000&api=v2"
 #mgrurl_32="http://doc.ucweb.local/download/attachments/33462233/fooyun-mngrserver-1.5.2_i386.tar.gz?version=1&modificationDate=1413863546000&api=v2"
 #mgrurl_64="http://doc.ucweb.local/download/attachments/33462233/fooyun-mngrserver-1.5.2_x86_64.tar.gz?version=1&modificationDate=1413863559000&api=v2"
 #funcurl_32="http://soft.ucweb.local/platform/share/func_all_in-uc-bin_x32.tar.bz"
@@ -22,7 +24,7 @@
 
 #################################################################################
 G_METHODS="install|upgrade|status|start|stop|restart"
-G_SERVICES="web|mgr|func_master|func_slave"
+G_SERVICES="web|webapi|mgr|func_master|func_slave"
 
 usage() {
     echo "Usage: $0 [OPTIONS] "
@@ -63,7 +65,7 @@ done
 [ -z "`echo $service |egrep "$G_SERVICES"`" ] && usage
 
 #############################################################
-downloaddir=$HOME/local/crondeploy
+downloaddir=$HOME/.crondeploy
 utildir=$downloaddir/cronutil
 srcdir=$downloaddir/src
 EXEC=$utildir/cronservice.sh
@@ -94,5 +96,5 @@ else
     [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf `eval "echo $tfu"`
 
     $EXEC -m $method -s $service -d $basedir -t $srcdir/$tf $force $clean
-    [ $? -eq 0 -a ! -z "$clean" ] && echo "clean $srcdir/$tf" && rm $tf
+    [ ! -z "$clean" ] && echo "clean $srcdir/$tf" && rm $tf
 fi

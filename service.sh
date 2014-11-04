@@ -1,6 +1,28 @@
 #####################################################################
 # service functions, loaded by cronservice.sh args: method, basedir
 #####################################################################
+update_conf() {
+    local oldcnf="$1"
+    local newcnf="$2"
+    local grepkey="$3"
+
+    log_debug "update $oldcnf to $newcnf via grep expression: '$grepkey'"
+    local keycnt=`fgrep -n "$grepkey" $oldcnf  |fgrep -v '#' |grep -v '\--' |wc -l`
+    [ "$keycnt" != "1" ] && log_err "amount[$keycnt] of '$grepkey' in $newcnf is not 1" && return 1
+
+    local keycnt=`fgrep -n "$grepkey" $newcnf  |fgrep -v '#' |grep -v '\--' |wc -l`
+    [ "$keycnt" != "1" ] && log_err "amount[$keycnt] of '$grepkey' in $newcnf is not 1" && return 1
+
+    local content=`fgrep "$grepkey" $oldcnf  |fgrep -v '#' |grep -v '\--'`
+    local line=`fgrep -n "$grepkey" $newcnf  |fgrep -v '#' |grep -v '\--' |awk -F: '{print $1}'`
+
+    log_debug "update $newcnf:$line with '$content'"
+    sed -i "${line}d" $newcnf && sed -i "$line i$content" $newcnf
+    [ $? -ne 0 ] && log_err "update $newcnf failed" && return 1
+
+    return 0
+}
+
 op_web() {
     log_debug "${FUNCNAME[0]}($#): $*"
 
@@ -16,16 +38,13 @@ op_web() {
             ;;
         "upgrade") 
             local newdir=$3
-            log_debug "copy configuration files from $basedir to $newdir"
 
-            local cnfs=(conf/application.conf)
-            for((i=0;i<${#cnfs[@]};i++))
+            local cnf="conf/application.conf"
+            local items=("http.port" "db.url" "db.user" "db.pass" "process.name")
+            for((i=0;i<${#items[@]};i++))
             do
-                log_debug "copy $basedir/${cnfs[$i]} to $newdir/${cnfs[$i]}"
-                if [ ! -e $newdir/${cnfs[$i]} -o ! $newdir/${cnfs[$i]} -ef $basedir/${cnfs[$i]} ]; then
-                    cp $basedir/${cnfs[$i]} $newdir/${cnfs[$i]}
-                    [ $? -ne 0 ] && log_err "copy $basedir/${cnfs[$i]} to $newdir/${cnfs[$i]} failed" && return 1
-                fi
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
             done
 
             return 0
@@ -81,16 +100,29 @@ op_mgr() {
             ;;
         "upgrade") 
             local newdir=$3
-            log_debug "copy configuration files from $basedir to $newdir"
 
-            local cnfs=(bin/fooyun_mngr.ini script/foo_conf.lua script/mngr/mngr_config.lua)
-            for((i=0;i<${#cnfs[@]};i++))
+            local cnf="bin/fooyun_mngr.ini"
+            local items=("listen")
+            for((i=0;i<${#items[@]};i++))
             do
-                log_debug "copy $basedir/${cnfs[$i]} to $newdir/${cnfs[$i]}"
-                if [ ! -e $newdir/${cnfs[$i]} -o ! $newdir/${cnfs[$i]} -ef $basedir/${cnfs[$i]} ]; then
-                    cp $basedir/${cnfs[$i]} $newdir/${cnfs[$i]}
-                    [ $? -ne 0 ] && log_err "copy $basedir/${cnfs[$i]} to $newdir/${cnfs[$i]} failed" && return 1
-                fi
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
+            done
+
+            local cnf="script/foo_conf.lua"
+            local items=("host")
+            for((i=0;i<${#items[@]};i++))
+            do
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
+            done
+
+            local cnf="script/mngr/mngr_config.lua"
+            local items=("mngr_server_ip" "mngr_server_port")
+            for((i=0;i<${#items[@]};i++))
+            do
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
             done
 
             return 0
@@ -143,18 +175,39 @@ op_func() {
             ;;
         "upgrade") 
             local newdir=$3
-            log_debug "copy configuration files from $basedir to $newdir"
 
-            local cnfs=(etc/certmaster/certmaster.conf etc/certmaster/minion.conf etc/func/overlord.conf etc/func/minion.conf)
-            for((i=0;i<${#cnfs[@]};i++))
+            local cnf="etc/certmaster/certmaster.conf"
+            local items=("listen_port")
+            for((i=0;i<${#items[@]};i++))
             do
-                log_debug "copy $basedir/${cnfs[$i]} to $newdir/${cnfs[$i]}"
-                if [ ! -e $newdir/${cnfs[$i]} -o ! $newdir/${cnfs[$i]} -ef $basedir/${cnfs[$i]} ]; then
-                    cp $basedir/${cnfs[$i]} $newdir/${cnfs[$i]}
-                    [ $? -ne 0 ] && log_err "copy $basedir/${cnfs[$i]} to $newdir/${cnfs[$i]} failed" && return 1
-                fi
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
+            done
+            
+            local cnf="etc/certmaster/minion.conf"
+            local items=("certmaster " "certmaster_port")
+            for((i=0;i<${#items[@]};i++))
+            do
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
+            done
+            
+            local cnf="etc/func/overlord.conf"
+            local items=("listen_port")
+            for((i=0;i<${#items[@]};i++))
+            do
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
             done
 
+            local cnf="etc/func/minion.conf"
+            local items=("listen_port" "minion_name")
+            for((i=0;i<${#items[@]};i++))
+            do
+                update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
+                [ $? -ne 0 ] && return 1
+            done
+            
             return 0
             ;;
         "status") 
