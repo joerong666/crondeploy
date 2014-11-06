@@ -5,15 +5,15 @@ auto deploy your program and attach it to cronjob
 
 usage
 ==========
-Usage: /home/joerong/work/fooyun/fooyun/source/dev/script/deploy/my_deploy.sh [OPTIONS] 
-OPTIONS:
--m method:       install|upgrade|status|start|stop|restart
--s service:      web|mgr|func_master|func_slave
--d basedir:      installation home, it is a symbol link
--t tarball:      use local tarball rather than using remote one, should absolute path
--p platform:     32|64
--f :             force to install/upgrade
--c :             clean downloaded file before/after install/upgrade
+Usage: /home/joerong/work/fooyun/fooyun/source/dev/script/deploy/my_deploy.sh [OPTIONS] <br/>
+OPTIONS: <br/>
+-m method:       install|upgrade|status|start|stop|restart <br/>
+-s service:      web|mgr|func_master|func_slave <br/>
+-d basedir:      installation home, it is a symbol link <br/>
+-t tarball:      use local tarball rather than using remote one, should absolute path <br/>
+-p platform:     32|64 <br/>
+-f :             force to install/upgrade <br/>
+-c :             clean downloaded file before/after install/upgrade <br/>
 
 install
 ==========
