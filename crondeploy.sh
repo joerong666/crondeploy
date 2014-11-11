@@ -1,28 +1,13 @@
 #!/bin/env bash
 
-#############################################################################
-# define following variables in your specific file and then source this file
-#############################################################################
-#VERSION="1.5.3"
-#webtarball=fooyun-web-1.5.3.tar.gz
-#webapitarball=fooyun-web-1.5.3.tar.gz
-#mgrtarball_32=fooyun-mngrserver-1.5.2_i386.tar.gz
-#mgrtarball_64=fooyun-mngrserver-1.5.2_x86_64.tar.gz
-#functarball_32=func_all_in-uc-bin_x32.tar.bz
-#functarball_64=func_all_in-uc-bin_x64.tar.bz
-#
-#weburl="http://doc.ucweb.local/download/attachments/34179839/fooyun-web-1.5.3.tar.gz?version=2&modificationDate=1414129665000&api=v2"
-#webapiurl="http://doc.ucweb.local/download/attachments/34179839/fooyun-web-1.5.3.tar.gz?version=2&modificationDate=1414129665000&api=v2"
-#mgrurl_32="http://doc.ucweb.local/download/attachments/33462233/fooyun-mngrserver-1.5.2_i386.tar.gz?version=1&modificationDate=1413863546000&api=v2"
-#mgrurl_64="http://doc.ucweb.local/download/attachments/33462233/fooyun-mngrserver-1.5.2_x86_64.tar.gz?version=1&modificationDate=1413863559000&api=v2"
-#funcurl_32="http://soft.ucweb.local/platform/share/func_all_in-uc-bin_x32.tar.bz"
-#funcurl_64="http://soft.ucweb.local/platform/share/func_all_in-uc-bin_x64.tar.bz"
-#
-#log_url=http://doc.ucweb.local/download/attachments/32771694/log.sh?api=v2
-#cronservice_url=http://doc.ucweb.local/download/attachments/32771694/cronservice.sh?api=v2
-#service_url=http://doc.ucweb.local/download/attachments/32771694/service.sh?api=v2
+###############################################################################################
+# Customize url
+###############################################################################################
+log_url=http://doc.ucweb.local/download/attachments/32771694/log.sh?api=v2
+cronservice_url=http://doc.ucweb.local/download/attachments/32771694/cronservice.sh?api=v2
+service_url=http://doc.ucweb.local/download/attachments/32771694/service.sh?api=v2
+###############################################################################################
 
-#################################################################################
 G_METHODS="install|upgrade|status|start|stop|restart"
 G_SERVICES="web|webapi|mgr|func_master|func_slave"
 
@@ -32,15 +17,16 @@ usage() {
     echo -e "-m method:\t $G_METHODS"
     echo -e "-s service:\t $G_SERVICES"
     echo -e "-d basedir:\t installation home, it is a symbol link"
-    echo -e "-t tarball:\t use local tarball rather than using remote one, should absolute path"
-    echo -e "-p platform:\t 32|64"
+    echo -e "-l pkgurl:\t\t remote url of package used to install/upgrade, required if '-t' option not provided. eg: \"http://localhost:4218/myapp/mypkg-1.5.3.tar.gz\""
+    echo -e "-n pkgname:\t\t remote package name used to install/upgrade, required if '-t' option not provided. eg: \"mypkg-1.5.3.tar.gz\""
+    echo -e "-t tarball:\t use local tarball rather than using remote url, should be absolute path. eg: /home/me/pkg/mypkg-1.5.4.tar.gz"
     echo -e "-f :\t\t force to install/upgrade"
     echo -e "-c :\t\t clean downloaded file before/after install/upgrade"
 
     exit 1
 }
  
-while getopts :m:s:d:t:p:fc ac
+while getopts :m:s:d:l:n:t:fc ac
 do
     case $ac in
         m)  method="$OPTARG"
@@ -49,9 +35,11 @@ do
             ;;
         d)  basedir="$OPTARG"
             ;;
-        t)  tarball="$OPTARG"
+        l)  pkgurl="$OPTARG"
             ;;
-        p)  pf="$OPTARG"
+        n)  pkgname="$OPTARG"
+            ;;
+        t)  tarball="$OPTARG"
             ;;
         f)  force="-f"
             ;;
@@ -63,37 +51,42 @@ done
 [ -z "$method" -o -z "$service" -o -z "$basedir" ] && usage
 [ -z "`echo $method |egrep "$G_METHODS"`" ] && usage
 [ -z "`echo $service |egrep "$G_SERVICES"`" ] && usage
+[ -n "`echo $method |egrep 'install|upgrade'`" ] && [ -z "$tarball" ] && [ -z "$pkgurl" -o -z "$pkgname" ] && usage
 
 #############################################################
+PWD=`pwd`
 downloaddir=$HOME/.crondeploy
 utildir=$downloaddir/cronutil
 srcdir=$downloaddir/src
-EXEC=$utildir/cronservice.sh
+
+scriptUrls=("$log_url" "$cronservice_url" "$service_url")
+for((i=0;i<${#scriptUrls[@]};i++))
+do
+    curl "${scriptUrls[$i]}" >/dev/null 2>&1
+    [ $? -ne 0 ] && utildir="$PWD" && use_local="1" && echo "cannot reach ${scriptUrls[$i]}, use local script instead" && break
+done
 
 mkdir -p $utildir $srcdir
 [ $? -ne 0 ] && exit 1
 
+EXEC=$utildir/cronservice.sh
 cd $utildir
-tf=log.sh && echo "download $tf to $srcdir if need" &&           [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf $log_url
-tf=cronservice.sh && echo "download $tf to $srcdir if need" &&   [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf $cronservice_url
-tf=service.sh && echo "download $tf to $srcdir if need" &&       [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf $service_url
+
+if [ -z "$use_local" ]; then
+    tf=log.sh && echo "download $tf to $srcdir if need" &&           [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf $log_url
+    tf=cronservice.sh && echo "download $tf to $srcdir if need" &&   [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf $cronservice_url
+    tf=service.sh && echo "download $tf to $srcdir if need" &&       [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf $service_url
+fi
+
 chmod +x *
 
 cd $srcdir
 
-sv=$service
-tp="_32"
-[ -n "`echo $sv |egrep 'func_master|func_slave'`" ] && sv="func"
-[ "$pf" != "32" ] && tp="_64"
-[ "$service" = "web" ] && tp=""
-
 if [ ! -z "$tarball" ]; then
     $EXEC -m $method -s $service -d $basedir -t $tarball $force $clean
 else
-    tft="\$${sv}tarball${tp}"
-    tfu="\$${sv}url${tp}"
-    tf=`eval "echo $tft"` && echo "download $tf to $srcdir if need" && [ ! -z "`echo $method |egrep 'install|upgrade'`" ] && \
-    [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf `eval "echo $tfu"`
+    tf="$pkgname" && echo "download $tf to $srcdir if need" && [ ! -z "`echo $method |egrep 'install|upgrade'`" ] && \
+    [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf "$pkgurl"
 
     $EXEC -m $method -s $service -d $basedir -t $srcdir/$tf $force $clean
     [ ! -z "$clean" ] && echo "clean $srcdir/$tf" && rm $tf

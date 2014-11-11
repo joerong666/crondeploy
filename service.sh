@@ -40,7 +40,10 @@ op_web() {
             local newdir=$3
 
             local cnf="conf/application.conf"
-            local items=("http.port" "db.url" "db.user" "db.pass" "process.name")
+            local items=("http.port" "db.url" "db.user" "db.pass" "process.name" \
+                        "sync.app.everysec" "sync.proxy.everysec" "sync.dataserver.everysec" \
+                        "sync.confservdata.everysec" "sync.managerinfo.everysec" "proxystat.everysec" \
+                        "dataserverstat.everysec" "portpool.everysec")
             for((i=0;i<${#items[@]};i++))
             do
                 update_conf $basedir/$cnf $newdir/$cnf "${items[$i]}"
