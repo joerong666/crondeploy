@@ -3,9 +3,9 @@
 ###############################################################################################
 # Customize url
 ###############################################################################################
-log_url=http://doc.ucweb.local/download/attachments/32771694/log.sh?api=v2
-cronservice_url=http://doc.ucweb.local/download/attachments/32771694/cronservice.sh?api=v2
-service_url=http://doc.ucweb.local/download/attachments/32771694/service.sh?api=v2
+log_url=http://down0.game.uc.cn/ucgc/fooyun/log.sh
+cronservice_url=http://down0.game.uc.cn/ucgc/fooyun/cronservice.sh
+service_url=http://down0.game.uc.cn/ucgc/fooyun/service.sh
 ###############################################################################################
 
 G_METHODS="install|upgrade|status|start|stop|restart"
@@ -86,7 +86,10 @@ if [ ! -z "$tarball" ]; then
     $EXEC -m $method -s $service -d $basedir -t $tarball $force $clean
 else
     tf="$pkgname" && echo "download $tf to $srcdir if need" && [ ! -z "`echo $method |egrep 'install|upgrade'`" ] && \
-    [ ! -e $tf -o ! -z "$clean" ] && wget -O $tf "$pkgurl"
+    if [ ! -e $tf -o ! -z "$clean" ]; then
+        wget -O $tf "$pkgurl"
+        [ $? -ne 0 ] && echo "download from $pkgurl failed" && exit 1
+    fi
 
     $EXEC -m $method -s $service -d $basedir -t $srcdir/$tf $force $clean
     [ ! -z "$clean" ] && echo "clean $srcdir/$tf" && rm $tf

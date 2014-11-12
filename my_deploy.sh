@@ -1,25 +1,49 @@
 #!/bin/env bash
 
-VERSION="1.5.3"
-webtarball=fooyun-web-1.5.3.tar.gz
-webapitarball=fooyun-web-1.5.3.tar.gz
-mgrtarball_32=fooyun-mngrserver-1.5.2_i386.tar.gz
-mgrtarball_64=fooyun-mngrserver-1.5.2_x86_64.tar.gz
-functarball_32=func_all_in-uc-bin_x32.tar.bz
-functarball_64=func_all_in-uc-bin_x64.tar.bz
+G_METHODS="install|upgrade|status|start|stop|restart"
+G_SERVICES="web|webapi|mgr|func_master|func_slave"
 
-weburl="http://doc.ucweb.local/download/attachments/34179839/fooyun-web-1.5.3.tar.gz?version=2&modificationDate=1414129665000&api=v2"
-webapiurl="http://doc.ucweb.local/download/attachments/34179839/fooyun-web-1.5.3.tar.gz?version=2&modificationDate=1414129665000&api=v2"
-mgrurl_32="http://doc.ucweb.local/download/attachments/33462233/fooyun-mngrserver-1.5.2_i386.tar.gz?version=1&modificationDate=1413863546000&api=v2"
-mgrurl_64="http://doc.ucweb.local/download/attachments/33462233/fooyun-mngrserver-1.5.2_x86_64.tar.gz?version=1&modificationDate=1413863559000&api=v2"
-funcurl_32="http://soft.ucweb.local/platform/share/func_all_in-uc-bin_x32.tar.bz"
-funcurl_64="http://soft.ucweb.local/platform/share/func_all_in-uc-bin_x64.tar.bz"
+usage() {
+    echo "Usage: $0 [OPTIONS] "
+    echo -e "OPTIONS:"
+    echo -e "-m method:\t $G_METHODS"
+    echo -e "-s service:\t $G_SERVICES"
+    echo -e "-v version:\t which version to install/upgrade"
 
-log_url=http://doc.ucweb.local/download/attachments/32771694/log.sh?api=v2
-cronservice_url=http://doc.ucweb.local/download/attachments/32771694/cronservice.sh?api=v2
-service_url=http://doc.ucweb.local/download/attachments/32771694/service.sh?api=v2
-crondeploy_url=http://doc.ucweb.local/download/attachments/32771694/crondeploy.sh?api=v2
+    exit 1
+}
+ 
+while getopts :m:s:v: ac
+do
+    case $ac in
+        m)  method="$OPTARG"
+            ;;
+        s)  service="$OPTARG"
+            ;;
+        v)  version="$OPTARG"
+            ;;
+    esac
+done
 
-CURPWD=`pwd`
-dpf=.crondeploy.sh && echo "download $dpf" && wget -O $dpf $crondeploy_url && source $dpf
-cd $CURPWD && echo "clean $dpf" && rm $dpf
+[ -z "$method" -o -z "$service" ] && usage
+[ -z "`echo $method |egrep "$G_METHODS"`" ] && usage
+[ -z "`echo $service |egrep "$G_SERVICES"`" ] && usage
+[ -z "$version" ] && [ -z "`echo $service |egrep 'func_master|func_slave'`" -a -n "`echo $method |egrep 'install|upgrade'`" ] && usage
+
+urlRoot="http://down0.game.uc.cn/ucgc/fooyun"
+
+[ "$service" = "web" -o "$service" = "webapi" ] && pkgname="fooyun-web-${version}.tar.gz"
+[ "$service" = "mgr" ] && pkgname="fooyun-mngrserver-${version}_`uname -m`.tar.gz"
+if [ "$service" = "func_master" -o "$service" = "func_slave" ]; then
+    [ "`uname -m`" = "i386" ] && pkgname="func_all_in-uc-bin_x32.tar.bz"
+    [ "`uname -m`" = "x86_64" ] && pkgname="func_all_in-uc-bin_x64.tar.bz"
+fi
+
+installdir="$HOME/local/fooyun/fooyun-$service"
+[ "$service" = "webapi" ] && service=web && installdir="$HOME/local/fooyun/api/fooyun-api"
+
+if [ "$method" = "install" -o "$method" = "upgrade" ]; then
+    bash <(curl $urlRoot/crondeploy.sh) -m $method -s $service -d $installdir -c -n $pkgname -l "$urlRoot/$pkgname"
+else
+    bash <(curl $urlRoot/crondeploy.sh) -m $method -s $service -d $installdir
+fi
