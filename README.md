@@ -9,7 +9,8 @@ Usage: /home/joerong/work/fooyun/fooyun/source/dev/script/deploy/my_deploy.sh [O
 OPTIONS: <br/>
 -m method:       install|upgrade|status|start|stop|restart <br/>
 -s service:      web|webapi|mgr|func_master|func_slave <br/>
--v version:      which version to install/upgrade
+-v version:      which version to install/upgrade <br/>
+-u urlRoot:      url root where to download deploy files
 
 install
 ==========
