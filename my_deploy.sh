@@ -9,11 +9,12 @@ usage() {
     echo -e "-m method:\t $G_METHODS"
     echo -e "-s service:\t $G_SERVICES"
     echo -e "-v version:\t which version to install/upgrade"
+    echo -e "-u urlRoot:\t url root where to download deploy files"
 
     exit 1
 }
  
-while getopts :m:s:v: ac
+while getopts :m:s:v:u: ac
 do
     case $ac in
         m)  method="$OPTARG"
@@ -21,6 +22,8 @@ do
         s)  service="$OPTARG"
             ;;
         v)  version="$OPTARG"
+            ;;
+        u)  urlRoot="$OPTARG"
             ;;
     esac
 done
@@ -30,7 +33,7 @@ done
 [ -z "`echo $service |egrep "$G_SERVICES"`" ] && usage
 [ -z "$version" ] && [ -z "`echo $service |egrep 'func_master|func_slave'`" -a -n "`echo $method |egrep 'install|upgrade'`" ] && usage
 
-urlRoot="http://down0.game.uc.cn/ucgc/fooyun"
+[ -z "$urlRoot" ] && urlRoot="http://down0.game.uc.cn/ucgc/fooyun"
 
 [ "$service" = "web" -o "$service" = "webapi" ] && pkgname="fooyun-web-${version}.tar.gz"
 [ "$service" = "mgr" ] && pkgname="fooyun-mngrserver-${version}_`uname -m`.tar.gz"

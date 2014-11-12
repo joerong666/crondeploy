@@ -1,13 +1,5 @@
 #!/bin/env bash
 
-###############################################################################################
-# Customize url
-###############################################################################################
-log_url=http://down0.game.uc.cn/ucgc/fooyun/log.sh
-cronservice_url=http://down0.game.uc.cn/ucgc/fooyun/cronservice.sh
-service_url=http://down0.game.uc.cn/ucgc/fooyun/service.sh
-###############################################################################################
-
 G_METHODS="install|upgrade|status|start|stop|restart"
 G_SERVICES="web|webapi|mgr|func_master|func_slave"
 
@@ -17,16 +9,17 @@ usage() {
     echo -e "-m method:\t $G_METHODS"
     echo -e "-s service:\t $G_SERVICES"
     echo -e "-d basedir:\t installation home, it is a symbol link"
-    echo -e "-l pkgurl:\t\t remote url of package used to install/upgrade, required if '-t' option not provided. eg: \"http://localhost:4218/myapp/mypkg-1.5.3.tar.gz\""
-    echo -e "-n pkgname:\t\t remote package name used to install/upgrade, required if '-t' option not provided. eg: \"mypkg-1.5.3.tar.gz\""
+    echo -e "-l pkgurl:\t remote url of package used to install/upgrade, required if '-t' option not provided. eg: \"http://localhost:4218/myapp/mypkg-1.5.3.tar.gz\""
+    echo -e "-n pkgname:\t remote package name used to install/upgrade, required if '-t' option not provided. eg: \"mypkg-1.5.3.tar.gz\""
     echo -e "-t tarball:\t use local tarball rather than using remote url, should be absolute path. eg: /home/me/pkg/mypkg-1.5.4.tar.gz"
+    echo -e "-u urlRoot:\t url root where to download log.sh、cronservice.sh、service.sh"
     echo -e "-f :\t\t force to install/upgrade"
     echo -e "-c :\t\t clean downloaded file before/after install/upgrade"
 
     exit 1
 }
  
-while getopts :m:s:d:l:n:t:fc ac
+while getopts :m:s:d:l:n:t:u:fc ac
 do
     case $ac in
         m)  method="$OPTARG"
@@ -41,6 +34,8 @@ do
             ;;
         t)  tarball="$OPTARG"
             ;;
+        u)  urlRoot="$OPTARG"
+            ;;
         f)  force="-f"
             ;;
         c)  clean="-c"
@@ -52,6 +47,12 @@ done
 [ -z "`echo $method |egrep "$G_METHODS"`" ] && usage
 [ -z "`echo $service |egrep "$G_SERVICES"`" ] && usage
 [ -n "`echo $method |egrep 'install|upgrade'`" ] && [ -z "$tarball" ] && [ -z "$pkgurl" -o -z "$pkgname" ] && usage
+
+#############################################################
+[ -z "$urlRoot" ] && urlRoot="http://down0.game.uc.cn/ucgc/fooyun"
+log_url=$urlRoot/log.sh
+cronservice_url=$urlRoot/cronservice.sh
+service_url=$urlRoot/service.sh
 
 #############################################################
 PWD=`pwd`
